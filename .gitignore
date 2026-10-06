@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Cached Yahoo Finance prices; re-downloaded on first run
+data/
+
+# Excel lock files
+~$*
