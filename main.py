@@ -38,7 +38,16 @@ def build_report(demo=False, refresh=False):
           f"VaR 99% {cfg.HORIZON_DAYS}d": v * scale, f"ES 97.5% {cfg.HORIZON_DAYS}d": e * scale}
          for m, (v, e) in methods.items()])
 
-    positions = pd.concat([pf.equity, pf.fx]).rename("Market value (INR)").rename_axis("Position").reset_index()
+    greeks = pf.greeks()
+    positions = pd.concat([
+        pd.DataFrame({"Position": pf.equity.index, "Asset class": "Equity", "Market value (INR)": pf.equity.values}),
+        pd.DataFrame({"Position": pf.fx.index, "Asset class": "FX", "Market value (INR)": pf.fx.values}),
+        pd.DataFrame({"Position": greeks["Option"], "Asset class": "Options", "Qty": greeks["Qty"],
+                      "Strike": greeks["Strike"], "Days to expiry": [o["days"] for o in pf.options],
+                      "Market value (INR)": greeks["Value"]}),
+    ], ignore_index=True)
+    positions = positions.astype({"Qty": "Int64", "Days to expiry": "Int64"})[
+        ["Position", "Asset class", "Qty", "Strike", "Days to expiry", "Market value (INR)"]]
     bt = re_.backtest(pf, returns_all)
     breaches = int(bt["Breach"].sum())
     lr, p_value = re_.kupiec_test(len(bt), breaches)
